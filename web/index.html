@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sang &amp; Or Market</title>
+  <meta name="description" content="Les cartes du RC Lens en vente, notées comme un match.">
+  <meta name="theme-color" content="#d4001a">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,400..900;1,62..125,400..900&family=Big+Shoulders+Display:wght@700..900&display=swap">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23d4001a'/%3E%3Cpath d='M9 8h6v12h8v5H9z' fill='%23ffd100'/%3E%3C/svg%3E">
+</head>
+<body>
+  <a class="skip" href="#grid">Aller aux cartes</a>
+
+  <!-- Live ticker (broadcast style) -->
+  <div class="ticker" id="ticker" aria-label="Meilleures affaires du moment">
+    <span class="ticker__tag"><span class="live-dot" aria-hidden="true"></span>Live deals</span>
+    <div class="ticker__track" id="tickerTrack"></div>
+    <button class="ticker__pause" id="tickerPause" type="button" aria-pressed="false" aria-label="Mettre le défilement en pause">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3h2v10H5zM9 3h2v10H9z"/></svg>
+    </button>
+  </div>
+
+  <header class="hero">
+    <div class="hero__pitch" aria-hidden="true">
+      <svg viewBox="0 0 1200 400" preserveAspectRatio="xMidYMid slice">
+        <g fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="600" cy="200" r="92"/>
+          <line x1="600" y1="-10" x2="600" y2="410"/>
+          <rect x="-10" y="90" width="150" height="220"/>
+          <rect x="1060" y="90" width="150" height="220"/>
+          <path d="M140 150a60 60 0 0 1 0 100M1060 150a60 60 0 0 0 0 100"/>
+        </g>
+      </svg>
+    </div>
+    <div class="hero__lights" aria-hidden="true"><i></i><i></i></div>
+    <div class="wrap hero__inner">
+      <div class="brand">
+        <div class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48"><path d="M24 3 42 9v14c0 11-7.6 18.6-18 22C13.6 41.6 6 34 6 23V9z" fill="#ffd100"/><path d="M24 7.5 38.5 12.4V23c0 8.8-6 15-14.5 18.2C15.5 38 9.5 31.8 9.5 23V12.4z" fill="#d4001a"/><path d="M17 15h5v13h9v5H17z" fill="#ffd100"/></svg>
+        </div>
+        <div>
+          <p class="brand__kicker">RC Lens · Cartes à collectionner</p>
+          <h1 class="brand__name">Sang <span>&amp;</span> Or <em>Market</em></h1>
+          <p class="brand__tag">Chaque carte en vente, notée comme un match face aux annonces comparables.</p>
+        </div>
+      </div>
+      <dl class="scoreboard" id="scoreboard" aria-label="Chiffres clés">
+        <div class="score score--main"><dt>En vente</dt><dd data-count="active">0</dd></div>
+        <div class="score"><dt>Numérotées</dt><dd data-count="numbered">0</dd></div>
+        <div class="score"><dt>Autos</dt><dd data-count="autos">0</dd></div>
+        <div class="score score--deal"><dt>Bonnes affaires</dt><dd data-count="deals">0</dd></div>
+        <div class="score"><dt>Joueurs</dt><dd data-count="players">0</dd></div>
+      </dl>
+    </div>
+    <p class="wrap hero__meta" id="heroMeta"></p>
+  </header>
+
+  <main>
+    <section class="wrap featured" id="featured" aria-labelledby="featuredTitle" hidden>
+      <h2 class="section-title" id="featuredTitle"><span class="section-title__num">01</span>Carte suivie</h2>
+      <div id="featuredList"></div>
+    </section>
+
+    <section class="wrap market" aria-labelledby="marketTitle">
+      <div class="market__head">
+        <h2 class="section-title" id="marketTitle"><span class="section-title__num">02</span>Le marché</h2>
+      </div>
+
+      <div class="toolbar" id="toolbar">
+        <label class="search">
+          <span class="sr-only">Rechercher une carte</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          <input id="q" type="search" placeholder="Joueur, gamme, parallèle…" autocomplete="off">
+        </label>
+        <div class="seg" role="radiogroup" aria-label="Statut" id="statusSeg">
+          <span class="seg__thumb" aria-hidden="true"></span>
+          <button type="button" role="radio" data-status="active">En vente</button>
+          <button type="button" role="radio" data-status="sold">Vendues</button>
+          <button type="button" role="radio" data-status="all">Tout</button>
+        </div>
+        <label class="select select--sort">
+          <span class="select__label">Trier</span>
+          <select id="sort"></select>
+        </label>
+        <button class="btn btn--filters" id="filtersBtn" type="button" aria-expanded="false" aria-controls="filters">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+          Filtres <span class="pill-count" id="filterCount" hidden>0</span>
+        </button>
+      </div>
+
+      <div class="market__body">
+        <aside class="filters" id="filters" aria-label="Filtres">
+          <div class="filters__head">
+            <h3>Filtres</h3>
+            <button class="filters__close" id="filtersClose" type="button" aria-label="Fermer les filtres">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+            </button>
+          </div>
+          <div class="filters__scroll">
+            <fieldset class="fgroup">
+              <legend>Verdict</legend>
+              <div class="chips" id="verdictChips"></div>
+            </fieldset>
+            <fieldset class="fgroup">
+              <legend>Profil de carte</legend>
+              <div class="chips" id="toggleChips"></div>
+            </fieldset>
+            <div class="fgroup fgroup--grid">
+              <label class="select"><span class="select__label">Joueur</span><select id="player"></select></label>
+              <label class="select"><span class="select__label">Gamme</span><select id="product"></select></label>
+              <label class="select"><span class="select__label">Tirage</span><select id="band"></select></label>
+              <label class="select"><span class="select__label">Époque</span><select id="era"></select></label>
+              <label class="select"><span class="select__label">Source</span><select id="source"></select></label>
+            </div>
+            <fieldset class="fgroup">
+              <legend>Prix (€)</legend>
+              <div class="range-inputs">
+                <label><span class="sr-only">Prix minimum</span><input id="pmin" type="number" inputmode="decimal" min="0" placeholder="Min"></label>
+                <span aria-hidden="true">→</span>
+                <label><span class="sr-only">Prix maximum</span><input id="pmax" type="number" inputmode="decimal" min="0" placeholder="Max"></label>
+              </div>
+            </fieldset>
+          </div>
+          <div class="filters__foot">
+            <button class="btn btn--ghost" id="resetBtn2" type="button">Réinitialiser</button>
+            <button class="btn btn--primary" id="filtersApply" type="button">Voir <span id="applyCount">0</span> cartes</button>
+          </div>
+        </aside>
+        <div class="filters-scrim" id="filtersScrim" hidden></div>
+
+        <div class="results">
+          <div class="results__bar">
+            <p class="results__count" id="resultCount" aria-live="polite"></p>
+            <div class="active-chips" id="activeChips"></div>
+            <button class="btn btn--link" id="resetBtn" type="button" hidden>Tout réinitialiser</button>
+          </div>
+          <ol class="grid" id="grid" tabindex="-1"></ol>
+          <div class="sentinel" id="sentinel" aria-hidden="true"></div>
+          <div class="empty" id="empty" hidden>
+            <p class="empty__big">0 – 0</p>
+            <p>Aucune carte ne correspond. Élargis les filtres.</p>
+            <button class="btn btn--primary" id="resetBtn3" type="button">Réinitialiser les filtres</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot wrap" id="foot"></footer>
+
+  <dialog class="sheet" id="sheet" aria-labelledby="sheetTitle">
+    <div class="sheet__inner" id="sheetBody"></div>
+  </dialog>
+
+  <div class="loader" id="loader" role="status"><span class="loader__ball" aria-hidden="true"></span>Chargement du mercato…</div>
+
+  <script src="core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

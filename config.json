@@ -1,0 +1,913 @@
+{
+  "club": {
+    "name": "RC Lens",
+    "keywords": [
+      "rc lens",
+      "racing club de lens",
+      "racing club lens",
+      "rcl",
+      "lens",
+      "sang et or"
+    ]
+  },
+  "watch": [
+    "https://www.vinted.fr/items/10145144496-panini-select-rc-lens"
+  ],
+  "http": {
+    "delay_seconds": [
+      2.5,
+      4.0
+    ],
+    "timeout_seconds": 25,
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36",
+    "max_429_retries": 2,
+    "backoff_seconds": 60
+  },
+  "vinted": {
+    "enabled": true,
+    "catalog_ids": [
+      4875
+    ],
+    "club_queries": [
+      {
+        "q": "lens",
+        "pages": 25
+      },
+      {
+        "q": "rc lens",
+        "pages": 10
+      },
+      {
+        "q": "lensois",
+        "pages": 3
+      },
+      {
+        "q": "racing club lens",
+        "pages": 3
+      },
+      {
+        "q": "lens numérotée",
+        "pages": 2
+      }
+    ],
+    "player_queries": true,
+    "detail_min_price": 3.0,
+    "detail_max_per_run": 150,
+    "player_query_pages": 1,
+    "player_query_eras": [
+      "current"
+    ],
+    "known_ratio_stop": 0.9,
+    "gone_check_max": 80
+  },
+  "delcampe": {
+    "enabled": true,
+    "queries": [
+      "rc lens panini",
+      "rc lens topps",
+      "rc lens numérotée",
+      "rc lens adrenalyn",
+      "rc lens prizm"
+    ],
+    "max_pages_per_query": 3,
+    "sold": true,
+    "sold_detail_max_per_run": 60
+  },
+  "ebay": {
+    "enabled": true,
+    "html_experimental": false,
+    "html": {
+      "domain": "www.ebay.fr",
+      "modes": [
+        "sold",
+        "active"
+      ],
+      "queries": [
+        "rc lens panini",
+        "rc lens topps",
+        "lens numbered",
+        "udol lens"
+      ],
+      "pages": 1,
+      "per_page": 120,
+      "max_requests": 8,
+      "delay_seconds": [
+        4,
+        6
+      ],
+      "category": 0
+    },
+    "marketplace": "EBAY_FR",
+    "api_queries": [
+      "rc lens panini",
+      "rc lens topps"
+    ],
+    "fx_to_eur": {
+      "EUR": 1.0,
+      "USD": 0.92,
+      "GBP": 1.17
+    },
+    "note": "html_experimental scrapes public search pages (sold + active) with strict rate limits; the official Browse API (active only) runs when EBAY_CLIENT_ID/EBAY_CLIENT_SECRET are set."
+  },
+  "analysis": {
+    "window_days": 180,
+    "asking_discount": 0.85,
+    "min_comps": 3,
+    "abs_tolerance_eur": 1.5,
+    "max_comps_per_tier": 12
+  },
+  "players": [
+    {
+      "name": "Robin Risser",
+      "pos": "G",
+      "era": "current"
+    },
+    {
+      "name": "Mathieu Gorgelin",
+      "pos": "G",
+      "era": "current"
+    },
+    {
+      "name": "Régis Gurtner",
+      "pos": "G",
+      "era": "current"
+    },
+    {
+      "name": "Samson Baidoo",
+      "pos": "D",
+      "era": "current"
+    },
+    {
+      "name": "Ismaëlo Ganiou",
+      "pos": "D",
+      "era": "current"
+    },
+    {
+      "name": "Nidal Celik",
+      "pos": "D",
+      "era": "current"
+    },
+    {
+      "name": "Kyllian Antonio",
+      "pos": "D",
+      "era": "current"
+    },
+    {
+      "name": "Jonathan Gradit",
+      "pos": "D",
+      "era": "current"
+    },
+    {
+      "name": "Matthieu Udol",
+      "pos": "D",
+      "era": "current",
+      "aliases": [
+        "mathieu udol"
+      ]
+    },
+    {
+      "name": "Ruben Aguilar",
+      "pos": "D",
+      "era": "current"
+    },
+    {
+      "name": "Andrija Bulatović",
+      "pos": "M",
+      "era": "current"
+    },
+    {
+      "name": "Amadou Haidara",
+      "pos": "M",
+      "era": "current",
+      "aliases": [
+        "amadou haïdara"
+      ]
+    },
+    {
+      "name": "Mezian Mesloub",
+      "pos": "M",
+      "era": "current"
+    },
+    {
+      "name": "Abdallah Sima",
+      "pos": "A",
+      "era": "current"
+    },
+    {
+      "name": "Florian Thauvin",
+      "pos": "A",
+      "era": "current",
+      "aliases": [
+        "thauvin"
+      ]
+    },
+    {
+      "name": "Odsonne Édouard",
+      "pos": "A",
+      "era": "current"
+    },
+    {
+      "name": "Florian Sotoca",
+      "pos": "A",
+      "era": "current",
+      "aliases": [
+        "sotoca"
+      ]
+    },
+    {
+      "name": "Rayan Fofana",
+      "pos": "A",
+      "era": "current"
+    },
+    {
+      "name": "Saud Abdulhamid",
+      "pos": "D",
+      "era": "recent",
+      "aliases": [
+        "abdulhamid"
+      ]
+    },
+    {
+      "name": "Jhoanner Chávez",
+      "pos": "D",
+      "era": "recent"
+    },
+    {
+      "name": "Maik Nawrocki",
+      "pos": "D",
+      "era": "recent"
+    },
+    {
+      "name": "Souleymane Sagnan",
+      "pos": "D",
+      "era": "recent"
+    },
+    {
+      "name": "Yacine Titraoui",
+      "pos": "M",
+      "era": "recent"
+    },
+    {
+      "name": "Michaël Cuisance",
+      "pos": "M",
+      "era": "recent"
+    },
+    {
+      "name": "Thorgan Hazard",
+      "pos": "M",
+      "era": "recent"
+    },
+    {
+      "name": "Michał Skóraś",
+      "pos": "A",
+      "era": "recent",
+      "aliases": [
+        "skoras"
+      ]
+    },
+    {
+      "name": "Franjo Ivanović",
+      "pos": "A",
+      "era": "recent"
+    },
+    {
+      "name": "Mamadou Sangaré",
+      "pos": "M",
+      "era": "recent"
+    },
+    {
+      "name": "Adrien Thomasson",
+      "pos": "M",
+      "era": "recent",
+      "aliases": [
+        "thomasson"
+      ]
+    },
+    {
+      "name": "Allan Saint-Maximin",
+      "pos": "A",
+      "era": "recent",
+      "aliases": [
+        "saint maximin",
+        "asm"
+      ]
+    },
+    {
+      "name": "Wesley Saïd",
+      "pos": "A",
+      "era": "recent"
+    },
+    {
+      "name": "Facundo Medina",
+      "pos": "D",
+      "era": "recent"
+    },
+    {
+      "name": "Malang Sarr",
+      "pos": "D",
+      "era": "recent"
+    },
+    {
+      "name": "Anthony Bermont",
+      "pos": "M",
+      "era": "recent"
+    },
+    {
+      "name": "Angelo Fulgini",
+      "pos": "M",
+      "era": "recent"
+    },
+    {
+      "name": "Anass Zaroury",
+      "pos": "A",
+      "era": "recent"
+    },
+    {
+      "name": "Rémy Labeau-Lascary",
+      "pos": "A",
+      "era": "recent",
+      "aliases": [
+        "labeau lascary",
+        "labeau"
+      ]
+    },
+    {
+      "name": "Goduine Koyalipou",
+      "pos": "A",
+      "era": "recent",
+      "aliases": [
+        "koyalipou"
+      ]
+    },
+    {
+      "name": "Hervé Koffi",
+      "pos": "G",
+      "era": "recent"
+    },
+    {
+      "name": "Jean-Clair Todibo",
+      "pos": "D",
+      "era": "recent"
+    },
+    {
+      "name": "Arthur Masuaku",
+      "pos": "D",
+      "era": "recent"
+    },
+    {
+      "name": "Abdukodir Khusanov",
+      "pos": "D",
+      "era": "recent",
+      "aliases": [
+        "khusanov"
+      ]
+    },
+    {
+      "name": "Kevin Danso",
+      "pos": "D",
+      "era": "recent"
+    },
+    {
+      "name": "Neil El Aynaoui",
+      "pos": "M",
+      "era": "recent",
+      "aliases": [
+        "el aynaoui"
+      ]
+    },
+    {
+      "name": "Andy Diouf",
+      "pos": "M",
+      "era": "recent"
+    },
+    {
+      "name": "Abdul Samed Salis",
+      "pos": "M",
+      "era": "recent",
+      "aliases": [
+        "abdul samed",
+        "salis abdul samed"
+      ]
+    },
+    {
+      "name": "Przemysław Frankowski",
+      "pos": "D",
+      "era": "recent",
+      "aliases": [
+        "frankowski"
+      ]
+    },
+    {
+      "name": "Deiver Machado",
+      "pos": "D",
+      "era": "recent"
+    },
+    {
+      "name": "Elye Wahi",
+      "pos": "A",
+      "era": "recent"
+    },
+    {
+      "name": "Martín Satriano",
+      "pos": "A",
+      "era": "recent"
+    },
+    {
+      "name": "Morgan Guilavogui",
+      "pos": "A",
+      "era": "recent"
+    },
+    {
+      "name": "Wilson Isidor",
+      "pos": "A",
+      "era": "recent"
+    },
+    {
+      "name": "Brice Samba",
+      "pos": "G",
+      "era": "recent"
+    },
+    {
+      "name": "Loïs Openda",
+      "pos": "A",
+      "era": "recent",
+      "aliases": [
+        "openda"
+      ]
+    },
+    {
+      "name": "Seko Fofana",
+      "pos": "M",
+      "era": "recent"
+    },
+    {
+      "name": "Massadio Haïdara",
+      "pos": "D",
+      "era": "recent"
+    },
+    {
+      "name": "Gaël Kakuta",
+      "pos": "M",
+      "era": "recent"
+    },
+    {
+      "name": "Jean Onana",
+      "pos": "M",
+      "era": "recent"
+    },
+    {
+      "name": "Óscar Cortés",
+      "pos": "A",
+      "era": "recent"
+    },
+    {
+      "name": "Wuilker Fariñez",
+      "pos": "G",
+      "era": "recent"
+    },
+    {
+      "name": "Jean-Louis Leca",
+      "pos": "G",
+      "era": "recent"
+    },
+    {
+      "name": "Ignatius Ganago",
+      "pos": "A",
+      "era": "recent"
+    },
+    {
+      "name": "Arnaud Kalimuendo",
+      "pos": "A",
+      "era": "recent"
+    },
+    {
+      "name": "Guillaume Warmuz",
+      "pos": "G",
+      "era": "legend"
+    },
+    {
+      "name": "Jean-Guy Wallemme",
+      "pos": "D",
+      "era": "legend",
+      "aliases": [
+        "wallemme"
+      ]
+    },
+    {
+      "name": "Cyrille Magnier",
+      "pos": "D",
+      "era": "legend"
+    },
+    {
+      "name": "Tony Vairelles",
+      "pos": "A",
+      "era": "legend",
+      "aliases": [
+        "vairelles"
+      ]
+    },
+    {
+      "name": "Vladimír Šmicer",
+      "pos": "M",
+      "era": "legend",
+      "aliases": [
+        "smicer"
+      ]
+    },
+    {
+      "name": "Frédéric Déhu",
+      "pos": "D",
+      "era": "legend"
+    },
+    {
+      "name": "Stéphane Ziani",
+      "pos": "M",
+      "era": "legend"
+    },
+    {
+      "name": "Anto Drobnjak",
+      "pos": "A",
+      "era": "legend"
+    },
+    {
+      "name": "Mustapha El Haddaoui",
+      "pos": "M",
+      "era": "legend",
+      "aliases": [
+        "el haddaoui"
+      ]
+    },
+    {
+      "name": "Robby Slater",
+      "pos": "M",
+      "era": "legend"
+    },
+    {
+      "name": "Mickaël Debève",
+      "pos": "M",
+      "era": "legend",
+      "aliases": [
+        "debeve"
+      ]
+    },
+    {
+      "name": "Charles-Édouard Coridon",
+      "pos": "M",
+      "era": "legend",
+      "aliases": [
+        "coridon"
+      ]
+    },
+    {
+      "name": "Éric Sikora",
+      "pos": "D",
+      "era": "legend",
+      "aliases": [
+        "sikora"
+      ]
+    },
+    {
+      "name": "Olivier Dacourt",
+      "pos": "M",
+      "era": "legend"
+    },
+    {
+      "name": "Jean-Marc Pilorget",
+      "pos": "D",
+      "era": "legend"
+    },
+    {
+      "name": "Didier Sénac",
+      "pos": "D",
+      "era": "legend"
+    },
+    {
+      "name": "Roger Boli",
+      "pos": "A",
+      "era": "legend"
+    },
+    {
+      "name": "Philippe Vercruysse",
+      "pos": "M",
+      "era": "legend"
+    },
+    {
+      "name": "Daniel Moreira",
+      "pos": "A",
+      "era": "legend"
+    },
+    {
+      "name": "Seydou Keita",
+      "pos": "M",
+      "era": "legend"
+    },
+    {
+      "name": "John Utaka",
+      "pos": "A",
+      "era": "legend",
+      "aliases": [
+        "utaka"
+      ]
+    },
+    {
+      "name": "Dagui Bakari",
+      "pos": "A",
+      "era": "legend"
+    },
+    {
+      "name": "Jacek Bąk",
+      "pos": "D",
+      "era": "legend",
+      "aliases": [
+        "jacek bak"
+      ]
+    },
+    {
+      "name": "Toifilou Maoulida",
+      "pos": "A",
+      "era": "legend",
+      "aliases": [
+        "maoulida"
+      ]
+    },
+    {
+      "name": "Issam Jemâa",
+      "pos": "A",
+      "era": "legend",
+      "aliases": [
+        "jemaa"
+      ]
+    },
+    {
+      "name": "Grégory Sertić",
+      "pos": "M",
+      "era": "legend",
+      "aliases": [
+        "sertic"
+      ]
+    },
+    {
+      "name": "Sébastien Roudet",
+      "pos": "M",
+      "era": "legend"
+    },
+    {
+      "name": "Raphaël Varane",
+      "pos": "D",
+      "era": "legend",
+      "aliases": [
+        "varane"
+      ]
+    },
+    {
+      "name": "Serge Aurier",
+      "pos": "D",
+      "era": "legend"
+    },
+    {
+      "name": "Geoffrey Kondogbia",
+      "pos": "M",
+      "era": "legend"
+    },
+    {
+      "name": "Jonathan Clauss",
+      "pos": "D",
+      "era": "recent",
+      "aliases": [
+        "clauss"
+      ]
+    },
+    {
+      "name": "Loïc Badé",
+      "pos": "D",
+      "era": "recent"
+    },
+    {
+      "name": "Christopher Wooh",
+      "pos": "D",
+      "era": "recent"
+    },
+    {
+      "name": "Cheick Doucouré",
+      "pos": "M",
+      "era": "recent"
+    },
+    {
+      "name": "Simon Banza",
+      "pos": "A",
+      "era": "recent"
+    },
+    {
+      "name": "Steven Fortes",
+      "pos": "D",
+      "era": "recent"
+    },
+    {
+      "name": "Yannick Cahuzac",
+      "pos": "M",
+      "era": "recent",
+      "aliases": [
+        "cahuzac"
+      ]
+    },
+    {
+      "name": "David Pereira da Costa",
+      "pos": "M",
+      "era": "recent",
+      "aliases": [
+        "pereira da costa"
+      ]
+    },
+    {
+      "name": "Ismaël Boura",
+      "pos": "D",
+      "era": "recent"
+    },
+    {
+      "name": "Clément Michelin",
+      "pos": "D",
+      "era": "recent"
+    },
+    {
+      "name": "Benjamin Bourigeaud",
+      "pos": "M",
+      "era": "legend",
+      "aliases": [
+        "bourigeaud"
+      ]
+    },
+    {
+      "name": "Jean-Kévin Duverne",
+      "pos": "D",
+      "era": "legend"
+    },
+    {
+      "name": "Cristian López",
+      "pos": "A",
+      "era": "legend"
+    },
+    {
+      "name": "Benoît Assou-Ekotto",
+      "pos": "D",
+      "era": "legend",
+      "aliases": [
+        "assou ekotto"
+      ]
+    },
+    {
+      "name": "Alou Diarra",
+      "pos": "M",
+      "era": "legend"
+    },
+    {
+      "name": "Aruna Dindane",
+      "pos": "A",
+      "era": "legend",
+      "aliases": [
+        "dindane"
+      ]
+    },
+    {
+      "name": "Éric Carrière",
+      "pos": "M",
+      "era": "legend"
+    },
+    {
+      "name": "Vitorino Hilton",
+      "pos": "D",
+      "era": "legend"
+    },
+    {
+      "name": "Rigobert Song",
+      "pos": "D",
+      "era": "legend"
+    },
+    {
+      "name": "Kanga Akalé",
+      "pos": "A",
+      "era": "legend"
+    },
+    {
+      "name": "Adil Hermach",
+      "pos": "M",
+      "era": "legend"
+    },
+    {
+      "name": "Alaeddine Yahia",
+      "pos": "D",
+      "era": "legend"
+    },
+    {
+      "name": "Olivier Thomert",
+      "pos": "A",
+      "era": "legend"
+    },
+    {
+      "name": "Nenad Kovačević",
+      "pos": "M",
+      "era": "legend"
+    },
+    {
+      "name": "Kévin Monnet-Paquet",
+      "pos": "A",
+      "era": "legend"
+    },
+    {
+      "name": "Jérôme Le Moigne",
+      "pos": "M",
+      "era": "legend"
+    },
+    {
+      "name": "Pablo Chavarría",
+      "pos": "A",
+      "era": "legend"
+    },
+    {
+      "name": "Marc-Vivien Foé",
+      "pos": "M",
+      "era": "legend",
+      "aliases": [
+        "foe"
+      ]
+    },
+    {
+      "name": "Valérien Ismaël",
+      "pos": "D",
+      "era": "legend"
+    },
+    {
+      "name": "Daniel Leclercq",
+      "pos": "M",
+      "era": "legend"
+    },
+    {
+      "name": "Pascal Nouma",
+      "pos": "A",
+      "era": "legend"
+    },
+    {
+      "name": "Yoann Lachor",
+      "pos": "D",
+      "era": "legend"
+    },
+    {
+      "name": "Ludovic Baal",
+      "pos": "D",
+      "era": "legend"
+    },
+    {
+      "name": "Sidi Keita",
+      "pos": "M",
+      "era": "legend"
+    },
+    {
+      "name": "Charles Itandje",
+      "pos": "G",
+      "era": "legend"
+    },
+    {
+      "name": "Fodé Sylla",
+      "pos": "A",
+      "era": "recent",
+      "aliases": [
+        "fsylla",
+        "f sylla"
+      ]
+    },
+    {
+      "name": "Radek Bejbl",
+      "pos": "M",
+      "era": "legend"
+    },
+    {
+      "name": "Joël Tiéhi",
+      "pos": "A",
+      "era": "legend"
+    },
+    {
+      "name": "Frédéric Meyrieu",
+      "pos": "M",
+      "era": "legend"
+    },
+    {
+      "name": "Francis Gillot",
+      "pos": "D",
+      "era": "legend"
+    },
+    {
+      "name": "Joachim Björklund",
+      "pos": "D",
+      "era": "legend"
+    }
+  ],
+  "overrides": {
+    "vinted:10145144496": {
+      "is_patch": true,
+      "season": "2025-26",
+      "era_bucket": "2020+",
+      "special": null,
+      "note": "From the photos: 2025-26 Select Ligue 1 McDonald's, Select Swatches SW-MU, serial 3/4, two-colour patch",
+      "serial": 3
+    }
+  }
+}
