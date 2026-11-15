@@ -7,7 +7,10 @@
   Safety rails: anonymous session (never your eBay cookies), 4–6 s randomised delay, a page cap,
   max one run per day, and the source stops for the run — and backs off 48 h — at the first
   403/429/challenge page instead of retrying.
-* ``api``: official Browse API (active listings only), needs EBAY_CLIENT_ID / EBAY_CLIENT_SECRET.
+* ``api``: official Browse API (active listings only), needs EBAY_CLIENT_ID / EBAY_CLIENT_SECRET (read from
+  the environment or from `.env` at the repo root). Listings that vanish from the API results are re-checked
+  by id and marked ``ended`` once gone. The API cannot tell a sale from an unsold expiry, so ended listings
+  simply leave the analysis instead of counting as probable sales.
 """
 from __future__ import annotations
 
@@ -27,6 +30,10 @@ from ..fetch import Client, FetchError
 
 TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token"
 SEARCH_URL = "https://api.ebay.com/buy/browse/v1/item_summary/search"
+ITEM_BY_LEGACY_URL = "https://api.ebay.com/buy/browse/v1/item/get_item_by_legacy_id"
+API_SCOPE = "https://api.ebay.com/oauth/api_scope"
+TOKEN_ATTEMPTS = 3
+TOKEN_RETRY_SECONDS = 3
 
 CHALLENGE_MARKERS = ("pardon our interruption", "splashui/challenge", "captcha", "checking your browser",
                      "verify yourself", "access denied", "/splashui/")
@@ -37,6 +44,10 @@ EN_MONTHS = {m: i + 1 for i, m in enumerate(["jan", "feb", "mar", "apr", "may", 
 
 class Blocked(Exception):
     pass
+
+
+class ApiError(Exception):
+    """Unrecoverable Browse API failure (bad credentials, disabled keyset): stop the API path loudly."""
 
 
 # ---------------------------------------------------------------- parsing (kept in one place)
@@ -126,6 +137,7 @@ class Ebay:
         self.client = client
         self.cfg = cfg
         self.token: str | None = None
+        self.token_expires = 0.0
         self.state_path = state_path
 
     # --- html (experimental)
@@ -201,32 +213,109 @@ class Ebay:
         return bool(os.environ.get("EBAY_CLIENT_ID") and os.environ.get("EBAY_CLIENT_SECRET"))
 
     def _auth(self) -> str:
-        if self.token:
+        """Application token (OAuth client_credentials): App ID + Cert ID -> bearer token valid ~2 h."""
+        if self.token and time.monotonic() < self.token_expires:
             return self.token
         creds = f"{os.environ['EBAY_CLIENT_ID']}:{os.environ['EBAY_CLIENT_SECRET']}".encode()
-        body = urllib.parse.urlencode({"grant_type": "client_credentials",
-                                       "scope": "https://api.ebay.com/oauth/api_scope"}).encode()
-        raw = self.client.get(TOKEN_URL, data=body, headers={
-            "Authorization": "Basic " + base64.b64encode(creds).decode(),
-            "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"})
-        token = json.loads(raw)["access_token"]
-        self.token = token
-        return token
+        body = urllib.parse.urlencode({"grant_type": "client_credentials", "scope": API_SCOPE}).encode()
+        headers = {"Authorization": "Basic " + base64.b64encode(creds).decode(),
+                   "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"}
+        for attempt in range(TOKEN_ATTEMPTS):
+            try:
+                raw = self.client.get(TOKEN_URL, data=body, headers=headers)
+                break
+            except FetchError as e:
+                # eBay's token endpoint sometimes answers a spurious 401 that succeeds on retry.
+                if attempt + 1 < TOKEN_ATTEMPTS and e.status in (401, 500, 502, 503):
+                    time.sleep(TOKEN_RETRY_SECONDS * (attempt + 1))
+                    continue
+                hint = " (check EBAY_CLIENT_ID / EBAY_CLIENT_SECRET in .env: Production App ID + Cert ID," \
+                       " keyset enabled with OAuth)" if e.status in (400, 401) else ""
+                raise ApiError(f"eBay OAuth token request failed: HTTP {e.status}{hint}") from None
+        payload = json.loads(raw)
+        self.token = payload["access_token"]
+        self.token_expires = time.monotonic() + int(payload.get("expires_in", 7200)) - 120
+        return self.token
 
-    def api_search(self, query: str, limit: int = 200) -> Iterator[dict]:
-        params = urllib.parse.urlencode({"q": query, "limit": limit, "category_ids": "261328"})
+    def _api_get(self, url: str) -> dict:
         try:
-            raw = self.client.get(f"{SEARCH_URL}?{params}", headers={
+            raw = self.client.get(url, headers={
                 "Authorization": f"Bearer {self._auth()}", "Accept": "application/json",
                 "X-EBAY-C-MARKETPLACE-ID": self.cfg.get("marketplace", "EBAY_FR")})
         except FetchError as e:
-            print(f"  ! ebay api search failed: {e}")
-            return
-        for it in json.loads(raw).get("itemSummaries", []):
-            price = it.get("price") or {}
-            yield {
-                "source": "ebay", "source_id": it["itemId"], "url": it.get("itemWebUrl"),
-                "title": it.get("title", ""), "price": float(price.get("value", 0)) or None,
-                "currency": price.get("currency", "EUR"), "image": (it.get("image") or {}).get("imageUrl"),
-                "condition": it.get("condition"), "status": "active",
-            }
+            if e.status == 401:  # token revoked/expired early: retry once with a fresh one
+                self.token = None
+                raw = self.client.get(url, headers={
+                    "Authorization": f"Bearer {self._auth()}", "Accept": "application/json",
+                    "X-EBAY-C-MARKETPLACE-ID": self.cfg.get("marketplace", "EBAY_FR")})
+            else:
+                raise
+        return json.loads(raw)
+
+    def api_search(self, query: str, max_items: int | None = None) -> Iterator[dict]:
+        """Browse API item_summary/search, paginated (200 per page, eBay caps offset+limit at 10 000)."""
+        max_items = max_items or self.cfg.get("api_max_items_per_query", 1000)
+        params = {"q": query, "limit": min(200, max_items), "offset": 0}
+        if self.cfg.get("api_category_ids"):
+            params["category_ids"] = ",".join(map(str, self.cfg["api_category_ids"]))
+        if self.cfg.get("api_filter"):
+            params["filter"] = self.cfg["api_filter"]
+        seen = 0
+        while seen < max_items and params["offset"] + params["limit"] <= 10_000:
+            page = self._api_get(f"{SEARCH_URL}?{urllib.parse.urlencode(params)}")
+            summaries = page.get("itemSummaries", [])
+            for it in summaries:
+                item = api_item(it)
+                if item:
+                    yield item
+            seen += len(summaries)
+            if not page.get("next") or not summaries:
+                return
+            params["offset"] += params["limit"]
+
+    def api_item_status(self, legacy_id: str) -> str:
+        """'active' if the listing is still live, 'ended' otherwise (sold or withdrawn: the API does not say)."""
+        try:
+            it = self._api_get(f"{ITEM_BY_LEGACY_URL}?{urllib.parse.urlencode({'legacy_item_id': legacy_id})}")
+        except FetchError as e:
+            if e.status == 404:
+                return "ended"
+            raise
+        end = it.get("itemEndDate")
+        if end and end < datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S"):
+            return "ended"
+        avail = (it.get("estimatedAvailabilities") or [{}])[0].get("estimatedAvailabilityStatus")
+        return "ended" if avail == "OUT_OF_STOCK" else "active"
+
+
+def legacy_id(it: dict) -> str | None:
+    """Numeric eBay item id, the same id the HTML/import path uses (so both paths dedupe on one row)."""
+    if it.get("legacyItemId"):
+        return str(it["legacyItemId"])
+    m = re.match(r"v1\|(\d+)\|", it.get("itemId", ""))
+    return m.group(1) if m else None
+
+
+def api_item(it: dict) -> dict | None:
+    """Map a Browse API itemSummary to the listing dict stored by the DB. No seller data is kept on purpose
+    (the keyset is exempted from Marketplace Account Deletion because we persist no eBay user data)."""
+    sid = legacy_id(it)
+    auction = "AUCTION" in (it.get("buyingOptions") or []) and "FIXED_PRICE" not in (it.get("buyingOptions") or [])
+    money = (it.get("currentBidPrice") if auction else None) or it.get("price") or {}
+    try:
+        price = float(money.get("value"))
+    except (TypeError, ValueError):
+        price = None
+    if not sid or not price:
+        return None
+    m = re.match(r"(https://www\.ebay\.[a-z.]+/itm/)", it.get("itemWebUrl") or "")
+    item = {
+        "source": "ebay", "source_id": sid, "url": f"{m.group(1) if m else 'https://www.ebay.fr/itm/'}{sid}",
+        "title": it.get("title", ""), "price": price, "currency": money.get("currency", "EUR"),
+        "image": (it.get("image") or {}).get("imageUrl")
+                 or ((it.get("thumbnailImages") or [{}])[0]).get("imageUrl"),
+        "condition": it.get("condition"), "status": "active",
+    }
+    if auction:
+        item["description"] = "[enchère en cours]"  # current bid, not a price: same marker as the HTML path
+    return item

@@ -403,6 +403,7 @@ svg { display: block; }
 .flag--auction { background: var(--auction); color: #fff; }
 .flag--graded { background: var(--gold); color: var(--ink); }
 .flag--sold { background: var(--ink); color: var(--gold); }
+.flag--new { background: var(--gold); color: var(--ink); }
 .card__body { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px 16px; flex: 1; min-width: 0; }
 .card__src { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
 .src { display: inline-flex; align-items: center; gap: 5px; }
@@ -494,7 +495,7 @@ svg { display: block; }
 .d-head .d-title { font-size: 13px; color: var(--muted); margin-top: 6px; font-style: italic; }
 .d-flags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 .d-flags .flag { box-shadow: none; border: 1.5px solid var(--ink); font-size: 11px; padding: 4px 8px; }
-.d-flags .flag--auto, .d-flags .flag--patch, .d-flags .flag--auction, .d-flags .flag--graded, .d-flags .flag--sold { border-color: transparent; }
+.d-flags .flag--auto, .d-flags .flag--patch, .d-flags .flag--auction, .d-flags .flag--graded, .d-flags .flag--sold, .d-flags .flag--new { border-color: transparent; }
 
 /* Match report (valuation) */
 .report { background: #fff; border-radius: var(--r-l); overflow: hidden; box-shadow: var(--shadow-1); border: 2px solid var(--ink); }

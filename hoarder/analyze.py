@@ -163,7 +163,7 @@ def fair_value(target: dict, pool: list[dict], cfg: dict) -> dict:
     return result
 
 
-def build(db: DB, cfg: dict) -> dict:
+def build(db: DB, cfg: dict, new_since: str | None = None) -> dict:
     history = db.history()
     window = (datetime.now(timezone.utc) - timedelta(days=cfg["analysis"]["window_days"])).isoformat()
     rows = [_row_dict(r, history) for r in db.all()]
@@ -171,9 +171,9 @@ def build(db: DB, cfg: dict) -> dict:
     pool = [r for r in rows if r["status"] in ("active", "reserved") or (r["sold_at"] or "") >= window]
     listings = []
     for r in rows:
+        # Every in-scope listing is exported, sold / removed / ended ones included: they are the price history
+        # (the UI hides them by default). Only the comparables pool is limited to the analysis window.
         if not r["relevant"]:
-            continue
-        if r["status"] not in ("active", "reserved") and (r["sold_at"] or "") < window and not r["watched"]:
             continue
         r["analysis"] = fair_value(r, pool, cfg)
         listings.append(r)
@@ -184,6 +184,7 @@ def build(db: DB, cfg: dict) -> dict:
         "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "club": cfg["club"]["name"],
         "window_days": cfg["analysis"]["window_days"],
+        "new_since": new_since,
         "runs": db.runs(),
         "listings": listings,
         "extra": [{k: v for k, v in e.items() if k != "history"} for e in extra],
@@ -191,12 +192,27 @@ def build(db: DB, cfg: dict) -> dict:
         "sources": {
             "vinted": "Annonces actives + ventes détectées (suivi entre deux passages)",
             "delcampe": "Annonces actives + objets vendus (date de vente)",
-            "ebay": "API officielle Browse (annonces actives) si EBAY_CLIENT_ID/SECRET configurés",
+            "ebay": "API officielle Browse (annonces actives, re-vérifiées à chaque passage) + pages importées",
         },
     }
 
 
+def new_since(db: DB, previous: Path) -> str | None:
+    """Cut-off for the "Nouveau" tag: listings first seen after the previous publication.
+
+    Re-running `analyze` without a new scrape keeps the same cut-off, so tags survive a re-export.
+    """
+    try:
+        prev = json.loads(previous.read_text())
+    except (OSError, ValueError):
+        return None
+    last_run = db.conn.execute("SELECT MAX(ts) FROM runs").fetchone()[0]
+    if last_run and prev.get("generated_at") and last_run > prev["generated_at"]:
+        return prev["generated_at"]
+    return prev.get("new_since")
+
+
 def export(db: DB, cfg: dict, out: Path) -> dict:
-    data = build(db, cfg)
+    data = build(db, cfg, new_since(db, out))
     out.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")))
     return data
