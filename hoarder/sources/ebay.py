@@ -31,6 +31,7 @@ from ..fetch import Client, FetchError
 TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token"
 SEARCH_URL = "https://api.ebay.com/buy/browse/v1/item_summary/search"
 ITEM_BY_LEGACY_URL = "https://api.ebay.com/buy/browse/v1/item/get_item_by_legacy_id"
+ITEM_GROUP_URL = "https://api.ebay.com/buy/browse/v1/item/get_items_by_item_group"
 API_SCOPE = "https://api.ebay.com/oauth/api_scope"
 TOKEN_ATTEMPTS = 3
 TOKEN_RETRY_SECONDS = 3
@@ -280,12 +281,29 @@ class Ebay:
         except FetchError as e:
             if e.status == 404:
                 return "ended"
+            if e.status == 400 and '"errorId":11006' in e.body.replace(" ", ""):
+                # Multi-variation listing: the legacy id is an item group id.
+                return self._api_group_status(legacy_id)
             raise
-        end = it.get("itemEndDate")
-        if end and end < datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S"):
-            return "ended"
-        avail = (it.get("estimatedAvailabilities") or [{}])[0].get("estimatedAvailabilityStatus")
-        return "ended" if avail == "OUT_OF_STOCK" else "active"
+        return _live_status(it)
+
+    def _api_group_status(self, group_id: str) -> str:
+        try:
+            group = self._api_get(f"{ITEM_GROUP_URL}?{urllib.parse.urlencode({'item_group_id': group_id})}")
+        except FetchError as e:
+            if e.status in (400, 404):
+                return "ended"
+            raise
+        items = group.get("items") or []
+        return "active" if any(_live_status(it) == "active" for it in items) else "ended"
+
+
+def _live_status(it: dict) -> str:
+    end = it.get("itemEndDate")
+    if end and end < datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S"):
+        return "ended"
+    avail = (it.get("estimatedAvailabilities") or [{}])[0].get("estimatedAvailabilityStatus")
+    return "ended" if avail == "OUT_OF_STOCK" else "active"
 
 
 def legacy_id(it: dict) -> str | None:

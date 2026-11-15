@@ -28,6 +28,7 @@ class FakeClient:
         self.total, self.live, self.token_status = total, live or set(), token_status
         self.calls: list[str] = []
         self.requests = 0
+        self.groups: set[str] = set()
 
     def get(self, url: str, headers=None, data=None) -> str:
         self.calls.append(url)
@@ -43,11 +44,29 @@ class FakeClient:
             if off + lim < self.total:
                 page["next"] = "…"
             return json.dumps(page)
+        if "get_items_by_item_group" in url:
+            return json.dumps({"items": [{"itemId": "x"}]})
         if "get_item_by_legacy_id" in url:
+            if q["legacy_item_id"] in self.groups:
+                raise FetchError(400, url, '{"errors":[{"errorId":11006,"message":"use item group"}]}')
             if q["legacy_item_id"] in self.live:
                 return json.dumps({"itemId": "x", "estimatedAvailabilities": [{"estimatedAvailabilityStatus": "IN_STOCK"}]})
             raise FetchError(404, url)
         raise AssertionError(url)
+
+
+class NetworkRetryTest(unittest.TestCase):
+    def test_timeouts_are_retried_then_become_fetch_error(self):
+        import urllib.error
+        from hoarder.fetch import Client
+        c = Client("t", 0)
+        with mock.patch.object(c, "_get", side_effect=[urllib.error.URLError("timed out"), "ok"]), \
+                mock.patch("hoarder.fetch.time.sleep"):
+            self.assertEqual(c.get("https://x"), "ok")
+        with mock.patch.object(c, "_get", side_effect=TimeoutError("t")), mock.patch("hoarder.fetch.time.sleep"), \
+                self.assertRaises(FetchError) as ctx:
+            c.get("https://x")
+        self.assertEqual(ctx.exception.status, 0)
 
 
 class DotenvTest(unittest.TestCase):
@@ -135,15 +154,16 @@ class RunEbayApiTest(unittest.TestCase):
                 mock.patch.dict(os.environ, {"EBAY_CLIENT_ID": "id", "EBAY_CLIENT_SECRET": "s"}):
             db = DB(Path(d) / "t.db")
             # Pre-existing eBay rows (e.g. from an HTML import): one still live, one gone.
-            for sid in ("900", "901"):
+            for sid in ("900", "901", "902"):
                 db.upsert({"source": "ebay", "source_id": sid, "title": "old", "price": 5.0}, "2026-01-01T00:00:00+00:00")
             fake = FakeClient(total=3, live={"900"})
+            fake.groups = {"902"}  # live multi-variation listing
             with mock.patch("hoarder.scrape.Client", return_value=fake):
                 stats = {"new": 0, "seen": 0, "errors": 0}
                 api_stats = run_ebay_api(cfg, db, now(), stats)
-            self.assertEqual((stats["new"], api_stats["items"], api_stats["checked"], api_stats["ended"]), (3, 3, 2, 1))
+            self.assertEqual((stats["new"], api_stats["items"], api_stats["checked"], api_stats["ended"]), (3, 3, 3, 1))
             status = {r["source_id"]: r["status"] for r in db.all()}
-            self.assertEqual(status, {"900": "active", "901": "ended", "1000": "active", "1001": "active", "1002": "active"})
+            self.assertEqual(status, {"900": "active", "901": "ended", "902": "active", "1000": "active", "1001": "active", "1002": "active"})
 
 
 if __name__ == "__main__":
