@@ -11,7 +11,7 @@
     ]
   },
   "watch": [
-    "https://www.vinted.fr/items/10145144496-panini-select-rc-lens"
+    "https://www.ebay.fr/itm/287645852038"
   ],
   "http": {
     "delay_seconds": [
@@ -99,15 +99,20 @@
     },
     "marketplace": "EBAY_FR",
     "api_queries": [
-      "rc lens panini",
-      "rc lens topps"
+      "lens"
     ],
+    "api_category_ids": [
+      261328
+    ],
+    "api_max_items_per_query": 3000,
+    "api_gone_check_max": 2000,
+    "api_delay_seconds": 0.2,
     "fx_to_eur": {
       "EUR": 1.0,
       "USD": 0.92,
       "GBP": 1.17
     },
-    "note": "html_experimental scrapes public search pages (sold + active) with strict rate limits; the official Browse API (active only) runs when EBAY_CLIENT_ID/EBAY_CLIENT_SECRET are set."
+    "note": "html_experimental scrapes public search pages (sold + active) with strict rate limits; the official Browse API (active only) runs when EBAY_CLIENT_ID/EBAY_CLIENT_SECRET are set (env or .env). Category 261328 = Sports Trading Card Singles. Listings no longer returned are re-checked by id and marked 'ended'."
   },
   "analysis": {
     "window_days": 180,

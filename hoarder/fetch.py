@@ -9,11 +9,16 @@ import urllib.error
 import urllib.request
 
 
+NETWORK_ATTEMPTS = 3
+NETWORK_RETRY_SECONDS = 5
+
+
 class FetchError(Exception):
-    def __init__(self, status: int, url: str):
+    def __init__(self, status: int, url: str, body: str = ""):
         super().__init__(f"HTTP {status} for {url}")
         self.status = status
         self.url = url
+        self.body = body  # error payload (APIs explain 4xx there)
 
 
 class RateLimited(FetchError):
@@ -44,6 +49,21 @@ class Client:
             time.sleep(wait)
 
     def get(self, url: str, headers: dict | None = None, data: bytes | None = None) -> str:
+        """GET (or POST when `data` is given). Network failures (timeout, reset) are retried, then surface as
+        FetchError(0) so every source handles them like an HTTP error instead of crashing the run."""
+        for attempt in range(NETWORK_ATTEMPTS):
+            try:
+                return self._get(url, headers, data)
+            except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
+                if isinstance(e, urllib.error.HTTPError):
+                    raise
+                if attempt + 1 == NETWORK_ATTEMPTS:
+                    raise FetchError(0, url, str(e)) from None
+                print(f"  … network error ({e}), retrying")
+                time.sleep(NETWORK_RETRY_SECONDS * (attempt + 1))
+        raise AssertionError("unreachable")
+
+    def _get(self, url: str, headers: dict | None, data: bytes | None) -> str:
         for attempt in range(self.max_429 + 1):
             self._pace()
             req = urllib.request.Request(url, data=data, headers={**self.headers, **(headers or {})})
@@ -57,7 +77,11 @@ class Client:
                     return raw.decode(resp.headers.get_content_charset() or "utf-8", errors="replace")
             except urllib.error.HTTPError as e:
                 if e.code != 429:
-                    raise FetchError(e.code, url) from None
+                    try:
+                        body = e.read(4096).decode("utf-8", errors="replace")
+                    except Exception:
+                        body = ""
+                    raise FetchError(e.code, url, body) from None
                 if attempt == self.max_429:
                     raise RateLimited(429, url) from None
                 retry = e.headers.get("Retry-After")

@@ -11,6 +11,7 @@ from pathlib import Path
 
 from .analyze import export
 from .db import DB
+from .env import load_dotenv
 from .scrape import refresh_attrs, run
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -19,6 +20,7 @@ WEB = ROOT / "web"
 
 def main():
     sys.stdout.reconfigure(line_buffering=True)
+    load_dotenv(ROOT / ".env")
     ap = argparse.ArgumentParser(prog="hoarder", description="Scrape, price and browse RC Lens trading cards")
     ap.add_argument("--config", default=str(ROOT / "config.json"))
     ap.add_argument("--db", default=str(ROOT / "data" / "hoarder.db"))
@@ -29,6 +31,10 @@ def main():
     s.add_argument("--deep", action="store_true", help="ignore the incremental stop (backfill)")
     im = sub.add_parser("import-ebay", help="import eBay search pages saved from your browser (Cmd+S)")
     im.add_argument("files", nargs="+")
+    ea = sub.add_parser("ebay-api", help="import active eBay listings through the official Browse API")
+    ea.add_argument("--query", action="append", help="search term (repeatable); default: ebay.api_queries")
+    ea.add_argument("--max", type=int, help="max listings per query (default: ebay.api_max_items_per_query)")
+    ea.add_argument("--no-check", action="store_true", help="skip re-checking listings no longer returned")
     sub.add_parser("analyze", help="re-parse listings, compute fair values, write web/data.json")
     v = sub.add_parser("serve", help="serve the web UI")
     v.add_argument("--port", type=int, default=8765)
@@ -48,7 +54,20 @@ def main():
     if args.cmd == "import-ebay":
         from .scrape import import_ebay_files
         print("import-ebay:", import_ebay_files(cfg, db, [Path(f) for f in args.files]))
-    if args.cmd in ("analyze", "run", "import-ebay"):
+    if args.cmd == "ebay-api":
+        from .db import now
+        from .scrape import run_ebay_api
+        from .sources.ebay import Ebay
+        if not Ebay.api_available():
+            sys.exit("EBAY_CLIENT_ID / EBAY_CLIENT_SECRET are not set: fill them in .env (see .env.example)")
+        ts, stats = now(), {"new": 0, "seen": 0, "errors": 0}
+        api_stats = run_ebay_api(cfg, db, ts, stats, args.query, args.max, not args.no_check)
+        db.log_run(ts, stats)
+        db.commit()
+        print("ebay-api:", stats)
+        if api_stats.get("error"):
+            sys.exit(1)
+    if args.cmd in ("analyze", "run", "import-ebay", "ebay-api"):
         refresh_attrs(db, cfg)
         data = export(db, cfg, WEB / "data.json")
         n = len(data["listings"])

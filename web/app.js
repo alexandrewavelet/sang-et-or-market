@@ -54,6 +54,7 @@
 
   function flagsFor(l, { sold = true } = {}) {
     const f = [];
+    if (l.isNew) f.push('<span class="flag flag--new">Nouveau</span>');
     if (l.is_auto) f.push('<span class="flag flag--auto">Auto</span>');
     if (l.is_patch) f.push('<span class="flag flag--patch">Patch</span>');
     if (l.is_auction) f.push('<span class="flag flag--auction">Enchère</span>');
@@ -111,10 +112,10 @@
   function renderHeader() {
     const s = L.stats(all);
     $$("[data-count]").forEach(el => tickTo(el, s[el.dataset.count] ?? 0));
-    const run = (data.runs || [])[0];
     const srcs = [...new Set(all.map(l => l.source))].map(SRC_LABEL).join(", ");
-    $("#heroMeta").textContent = `Mis à jour le ${fmt.date(data.generated_at)} · ${all.length} annonces suivies · ${srcs}`
-      + (run ? ` · dernier passage : ${run.new} nouvelles` : "");
+    $("#heroMeta").textContent = `Mis à jour le ${fmt.date(data.generated_at)} · ${all.length} annonces suivies`
+      + ` (${s.sold} en historique) · ${srcs}`
+      + (data.new_since ? ` · ${s.fresh} nouvelles depuis le ${fmt.date(data.new_since)}` : "");
     $("#foot").innerHTML = `<p><strong>Comment lire le score ?</strong> 50 = prix juste face aux comparables pondérés ; au-dessus, la carte est moins chère que sa cote ; en dessous, plus chère. Fenêtre d'analyse : ${esc(data.window_days)} jours.</p>`
       + Object.entries(data.sources || {}).map(([k, v]) => `<p><strong>${esc(SRC_LABEL(k))}</strong> — ${esc(v)}</p>`).join("");
   }
@@ -178,7 +179,7 @@
 
   /* ---------------- filters ---------------- */
   const TOGGLES = [
-    ["numbered", "Numérotées"], ["autos", "Autographes"], ["patches", "Patchs"], ["priced", "Avec cote"],
+    ["onlyNew", "Nouveautés"], ["numbered", "Numérotées"], ["autos", "Autographes"], ["patches", "Patchs"], ["priced", "Avec cote"],
     ["hideLots", "Masquer lots"], ["hideStickers", "Masquer stickers"],
   ];
 
@@ -406,6 +407,7 @@
       ["Parallèle", l.parallel], ["Spécial", l.special], ["Tirage", l.runLabel ? `${l.runLabel}${l.band ? ` (${l.band})` : ""}` : null],
       ["Gradée", l.graded], ["État", l.condition], ["Statut", L.STATUS[l.status] || l.status],
       ["Vue la 1re fois", fmt.date(l.first_seen)], ["Vendue le", l.sold_at ? fmt.date(l.sold_at) : null],
+      ["Vue la dernière fois", l.isSold && !l.sold_at ? fmt.date(l.last_seen) : null],
       ["Favoris", l.favourites], ["Prix total (port)", l.price_total && l.price_total !== l.price ? fmt.eur(l.price_total) : null],
       ["Source", SRC_LABEL(l.source)],
     ];

@@ -10,7 +10,7 @@ from .db import DB, now
 from .fetch import Client, FetchError, RateLimited
 from .parse import PlayerMatcher, analyse_text, norm
 from .sources.delcampe import Delcampe
-from .sources.ebay import Ebay
+from .sources.ebay import ApiError, Ebay
 from .sources.vinted import Vinted, player_query
 
 
@@ -23,13 +23,19 @@ def _client(cfg: dict, delay=None) -> Client:
 def refresh_attrs(db: DB, cfg: dict):
     """Re-parse every listing. In scope = mentions the club (proxy for 'card in a Lens shirt') or watched."""
     matcher = PlayerMatcher(cfg["players"])
+    watch = {_url_key(u) for u in cfg.get("watch", [])}
     for row in db.all():
         info = analyse_text(row["title"] or "", row["description"] or "", matcher, cfg["club"]["keywords"])
         attrs = info.to_dict()
         attrs.update(cfg.get("overrides", {}).get(row["id"], {}))
-        db.update(row["id"], attrs=json.dumps(attrs, ensure_ascii=False),
-                  relevant=int(bool(attrs["club_context"]) or bool(row["watched"])))
+        watched = _url_key(row["url"] or "") in watch  # config is the source of truth: removing a URL unwatches
+        db.update(row["id"], attrs=json.dumps(attrs, ensure_ascii=False), watched=int(watched),
+                  relevant=int(bool(attrs["club_context"]) or watched))
     db.commit()
+
+
+def _url_key(url: str) -> str:
+    return url.split("?")[0].split("#")[0].rstrip("/").lower()
 
 
 def _queries(cfg: dict, quick: bool) -> list[tuple[str, int]]:
@@ -153,21 +159,26 @@ def run_delcampe(cfg: dict, db: DB, ts: str, stats: dict, quick: bool):
     db.commit()
 
 
-def run_ebay(cfg: dict, db: DB, ts: str, stats: dict, state_path: Path):
-    ecfg = cfg["ebay"]
-    fx = ecfg.get("fx_to_eur", {"EUR": 1.0})
+def _ebay_on_item(cfg: dict, db: DB, ts: str, stats: dict):
+    fx = cfg["ebay"].get("fx_to_eur", {"EUR": 1.0})
 
-    def on_item(item: dict, q: str):
+    def on_item(item: dict, q: str) -> str | None:
         rate = fx.get(item.get("currency", "EUR"))
         if rate is None:
-            return
+            return None
         if item.get("currency") != "EUR":
             item["title"] = f"{item['title']} [{item['price']} {item['currency']}]"
             item["price"] = round(item["price"] * rate, 2)
             item["currency"] = "EUR"
-        _, is_new = db.upsert(item, ts, q)
+        lid, is_new = db.upsert(item, ts, q)
         stats["new" if is_new else "seen"] += 1
+        return lid
+    return on_item
 
+
+def run_ebay(cfg: dict, db: DB, ts: str, stats: dict, state_path: Path):
+    ecfg = cfg["ebay"]
+    on_item = _ebay_on_item(cfg, db, ts, stats)
     if ecfg.get("html_experimental"):
         hcfg = ecfg.get("html", {})
         # Single anonymous session, no account cookies, slow randomised pacing; no 429 retry loop.
@@ -177,12 +188,73 @@ def run_ebay(cfg: dict, db: DB, ts: str, stats: dict, state_path: Path):
     else:
         print("[ebay html] disabled (set ebay.html_experimental=true to enable, at your own risk)")
     if Ebay.api_available():
-        api = Ebay(_client(cfg), ecfg)
-        for q in ecfg.get("api_queries", []):
-            print(f"[ebay api] {q}")
-            for item in api.api_search(q):
-                on_item(item, q)
+        run_ebay_api(cfg, db, ts, stats)
+    else:
+        print("[ebay api] skipped: EBAY_CLIENT_ID / EBAY_CLIENT_SECRET not set (.env)")
     db.commit()
+
+
+def run_ebay_api(cfg: dict, db: DB, ts: str, stats: dict, queries: list[str] | None = None,
+                 max_items: int | None = None, check_gone: bool = True) -> dict:
+    """Official Browse API: import active listings, then re-check the eBay listings no longer returned."""
+    ecfg = cfg["ebay"]
+    api = Ebay(Client(cfg["http"]["user_agent"], ecfg.get("api_delay_seconds", 0.2), cfg["http"]["timeout_seconds"]), ecfg)
+    on_item = _ebay_on_item(cfg, db, ts, stats)
+    api_stats = {"items": 0, "queries": 0, "ended": 0, "checked": 0, "errors": 0}
+    stats["ebay_api"] = api_stats
+    seen: set[str] = set()
+    try:
+        for q in queries or ecfg.get("api_queries", []):
+            n = 0
+            for item in api.api_search(q, max_items):
+                lid = on_item(item, f"api:{q}")
+                if lid:
+                    seen.add(lid)
+                    n += 1
+            api_stats["queries"] += 1
+            api_stats["items"] += n
+            print(f"[ebay api] {q}: {n} listings")
+            db.commit()
+        if check_gone and not queries:
+            # Only after a full run of the configured queries: a custom --query run sees a subset by design.
+            _ebay_api_check_gone(api, db, ts, seen, ecfg.get("api_gone_check_max", 500), api_stats)
+    except ApiError as e:
+        print(f"[ebay api] STOP: {e}")
+        api_stats["error"] = str(e)
+    except FetchError as e:
+        print(f"[ebay api] STOP: {e}")
+        api_stats["error"] = str(e)
+        stats["errors"] += 1
+    db.commit()
+    return api_stats
+
+
+def _ebay_api_check_gone(api: Ebay, db: DB, ts: str, seen: set[str], cap: int, api_stats: dict):
+    rows = db.conn.execute(
+        "SELECT id, source_id FROM listings WHERE source='ebay' AND status='active' "
+        "ORDER BY relevant DESC, last_seen ASC").fetchall()
+    todo = [r for r in rows if r["id"] not in seen][:cap]
+    if todo:
+        print(f"[ebay api] re-checking {len(todo)} listings not returned by the search")
+    for n, row in enumerate(todo):
+        try:
+            status = api.api_item_status(row["source_id"])
+        except FetchError as e:
+            api_stats["errors"] += 1
+            if api_stats["errors"] > 20:
+                print(f"  ! too many errors, stopping the re-check ({e})")
+                return
+            continue
+        api_stats["checked"] += 1
+        if status == "active":
+            db.update(row["id"], last_seen=ts)
+        else:
+            db.update(row["id"], status="ended")
+            db.observe(row["id"], ts, None, "ended")
+            api_stats["ended"] += 1
+        if n % 50 == 49:
+            db.commit()
+            print(f"  … {n + 1}/{len(todo)} checked, {api_stats['ended']} ended")
 
 
 def run(cfg: dict, db: DB, only: set[str] | None = None, quick: bool = False, state_dir: Path | None = None,

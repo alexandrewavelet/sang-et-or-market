@@ -13,7 +13,7 @@
     { key: "enchère", label: "Enchère en cours", tone: "auction" },
     { key: "insuffisant", label: "Pas assez de données", tone: "none" },
   ];
-  const STATUS = { active: "En vente", reserved: "Réservée", sold: "Vendue", removed: "Retirée" };
+  const STATUS = { active: "En vente", reserved: "Réservée", sold: "Vendue", removed: "Retirée", ended: "Disparue" };
   const ERAS = { current: "Effectif actuel", recent: "Ancien (récent)", legend: "Légende" };
   const SOURCES = { vinted: "Vinted", delcampe: "Delcampe", ebay: "eBay" };
   const BANDS = ["1/1", "/2-5", "/6-10", "/11-25", "/26-50", "/51-99", "/100-199", "/200-499", "/500+", "numérotée (tirage ?)"];
@@ -28,7 +28,7 @@
 
   const DEFAULT_STATE = {
     q: "", status: "active", sort: "deal", player: "", product: "", band: "", era: "", source: "",
-    pmin: "", pmax: "", numbered: false, autos: false, patches: false, hideLots: true, hideStickers: true,
+    pmin: "", pmax: "", onlyNew: false, numbered: false, autos: false, patches: false, hideLots: true, hideStickers: true,
     priced: false, verdicts: [],
   };
 
@@ -48,11 +48,13 @@
     return /^https?:/.test(u) ? u : BASE + u;
   }
 
-  function enrich(l) {
+  function enrich(l, newSince) {
     const a = l.analysis || { comps: [] };
     l.image = img(l.image);
     l.images = (l.images && l.images.length ? l.images : [l.image]).map(img).filter(Boolean);
-    l.isSold = l.status === "sold" || l.status === "removed";
+    // Anything no longer on sale (sold, removed, ended) is history: hidden by default, kept with its last price.
+    l.isSold = l.status !== "active" && l.status !== "reserved";
+    l.isNew = !!newSince && !l.isSold && (l.first_seen || "") > newSince;
     l.verdict = VERDICTS.find(v => v.key === a.verdict) || VERDICTS[VERDICTS.length - 1];
     l.runLabel = fmt.run(l);
     // 0 (common) .. 1 (one of one): drives foil/rarity effects.
@@ -68,7 +70,7 @@
     if (!res.ok) throw new Error("data.json introuvable — lance `python3 -m hoarder run`");
     const data = await res.json();
     const byId = new Map();
-    data.listings.forEach(l => { enrich(l); byId.set(l.id, l); });
+    data.listings.forEach(l => { enrich(l, data.new_since); byId.set(l.id, l); });
     (data.extra || []).forEach(l => { enrich(l); byId.set(l.id, l); });
     data.byId = byId;
     data.featured = data.listings.filter(l => l.watched);
@@ -87,6 +89,7 @@
       if (s.band && l.band !== s.band) return false;
       if (s.source && l.source !== s.source) return false;
       if (s.era === "none" ? !!l.player : s.era && l.player_era !== s.era) return false;
+      if (s.onlyNew && !l.isNew) return false;
       if (s.numbered && !l.print_run) return false;
       if (s.autos && !l.is_auto) return false;
       if (s.patches && !l.is_patch) return false;
@@ -138,6 +141,7 @@
       autos: active.filter(l => l.is_auto).length,
       sold: list.filter(l => l.isSold).length,
       deals: active.filter(l => l.analysis.verdict === "bonne affaire").length,
+      fresh: active.filter(l => l.isNew).length,
       players: new Set(active.map(l => l.player).filter(Boolean)).size,
     };
   }
@@ -175,7 +179,7 @@
   /** Count of non-default filters (for a badge on the filters button). */
   function activeFilters(s) {
     return ["player", "product", "band", "era", "source", "pmin", "pmax"].filter(k => s[k]).length
-      + ["numbered", "autos", "patches", "priced"].filter(k => s[k]).length
+      + ["onlyNew", "numbered", "autos", "patches", "priced"].filter(k => s[k]).length
       + (s.verdicts || []).length + (s.hideLots ? 0 : 1) + (s.hideStickers ? 0 : 1);
   }
 
